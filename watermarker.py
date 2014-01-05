@@ -168,8 +168,6 @@ class Settings(QtGui.QWidget):
                 print("Error with {0}".format(pic))
                 raise
         QtGui.qApp.emit(QtCore.SIGNAL("notify(PyQt_PyObject)"), "Done!")
-        
-        
                 
 def find_pos(image, watermark, corner=4, padding=50):
     '''Return the coordinates the image should be pasted at'''
