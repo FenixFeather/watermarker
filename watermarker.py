@@ -2,11 +2,16 @@
 
 import Image
 import os
+import sys
+from PyQt4 import QtGui, QtCore
 
 class Watermarker(QtGui.QMainWindow):
     def __init__(self):
         super(Watermarker, self).__init__()
+        
         self.initUI()
+        
+        QtCore.QObject.connect(QtGui.qApp, QtCore.SIGNAL('notify(PyQt_PyObject)'), self.notify)
         
     def center(self):
         '''Center the window'''
@@ -42,13 +47,19 @@ class Watermarker(QtGui.QMainWindow):
         self.setWindowTitle('Watermarker')    
         self.show()
         
+    def notify(self, message):
+        self.statusBar().showMessage(message)
+        
 class Settings(QtGui.QWidget):
     def __init__(self):
         super(Settings, self).__init__()
         self.home = os.path.expanduser('~')
+        
         self.watermark = ""
         self.inputFolder = ""
-        
+        self.outputFolder = ""
+        self.corner = 1
+        self.padding = 50
         
         self.initUI()
     
@@ -92,22 +103,31 @@ class Settings(QtGui.QWidget):
         
         #Get corner
         self.cornerDict = {"Top Left":1 , "Top Right":2 , "Bottom Left":3 , "Bottom Right":4 }
-        self.combo = QtGui.Qself.comboBox(self)
+        self.comboLabel = QtGui.QLabel('Corner')
+        self.combo = QtGui.QComboBox()
         for corner in self.cornerDict.keys():
             self.combo.addItem(corner)
         self.combo.activated[str].connect(self.change)
         
         #Get padding
-        self.paddingLabel = QtGui.QLabel('Padding (pixels or decimal\%)')
+        self.paddingLabel = QtGui.QLabel('Padding (pixels or decimal%)')
         
         self.paddingEdit = QtGui.QLineEdit()
+        self.paddingEdit.setText('50')
         self.paddingEdit.setValidator(validator)
         self.paddingEdit.textChanged[str].connect(self.change)
+        
+        #GO
+        self.goButton = QtGui.QPushButton('Watermark!')
+        self.goButton.clicked.connect(self.process)
         
         #Grid
         grid.addWidget(self.watermarkLabel, 1, 0); grid.addWidget(self.watermarkEdit, 1, 1); grid.addWidget(self.watermarkButton, 1, 2)
         grid.addWidget(self.inputFolderLabel, 2, 0); grid.addWidget(self.inputFolderEdit, 2, 1); grid.addWidget(self.inputFolderButton, 2, 2)
         grid.addWidget(self.outputFolderLabel, 3, 0); grid.addWidget(self.outputFolderEdit, 3, 1); grid.addWidget(self.outputFolderButton, 3, 2)
+        grid.addWidget(self.comboLabel, 4, 0); grid.addWidget(self.combo, 4, 1)
+        grid.addWidget(self.paddingLabel, 5, 0); grid.addWidget(self.paddingEdit, 5, 1)
+        grid.addWidget(self.goButton, 6, 2)
         
         self.setLayout(grid)
         
@@ -124,8 +144,33 @@ class Settings(QtGui.QWidget):
             self.outputFolderEdit.setText(fname)
         
     def change(self, s):
-        pass
+        sender = self.sender()
+        self.watermark = str(self.watermarkEdit.text())
+        self.inputFolder = str(self.inputFolderEdit.text()) + '/'
+        self.outputFolder = str(self.outputFolderEdit.text()) + '/'
+        if sender is self.combo:
+            self.corner = self.cornerDict[str(s)]
+        self.padding = int(self.paddingEdit.text())
         
+    def process(self):
+        print(self.watermark)
+        watermark = Image.open(self.watermark)
+        contents = os.listdir(self.inputFolder)
+        QtGui.qApp.emit(QtCore.SIGNAL("notify(PyQt_PyObject)"), "Working...")
+        for pic in contents:
+            try:
+                workImage = Image.open(os.path.join(self.inputFolder + pic))
+                position = find_pos(workImage, watermark, self.corner, self.padding)
+                workImage.paste(watermark,position,watermark)
+                workImage.save(os.path.join(self.outputFolder + pic))
+                print pic
+            except:
+                print("Error with {0}".format(pic))
+                raise
+        QtGui.qApp.emit(QtCore.SIGNAL("notify(PyQt_PyObject)"), "Done!")
+        
+        
+                
 def find_pos(image, watermark, corner=4, padding=50):
     '''Return the coordinates the image should be pasted at'''
     width, height = image.size
@@ -187,7 +232,11 @@ def main():
         get_corner(),
         get_padding()
     )
-    
+
+def mainw():
+    app = QtGui.QApplication(sys.argv)
+    ex = Watermarker()
+    sys.exit(app.exec_())  
             
 if __name__ == "__main__":
-    main()
+    mainw()
