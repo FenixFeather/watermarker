@@ -47,10 +47,28 @@ def get_corner():
                 return corner
         except ValueError:
             continue
-        
+            
+def get_padding():
+    while True:
+        try:
+            padding = raw_input("Enter padding (fraction or pixel value): ")
+            if int(float(padding)) == float(padding):
+                return abs(int(padding))
+            return abs(float(padding))
+        except ValueError:
+            print("Invalid input.")
+            continue
+            
 def main():
     print("Enter relative or absolute paths.")
-    overlay_watermark(raw_input("Watermark image path: "),raw_input("Input images folder: "),raw_input("Processed images folder: "))
+    overlay_watermark(
+        raw_input("Watermark image path: "),
+        raw_input("Input images folder: "),
+        raw_input("Processed images folder: "),
+        get_corner(),
+        get_padding()
+    )
+    
             
 if __name__ == "__main__":
     main()
